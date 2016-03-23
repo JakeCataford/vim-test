@@ -42,7 +42,7 @@ function! test#ruby#minitest#build_args(args) abort
     endif
   endfor
 
-  let kind = matchstr(test#ruby#minitest#executable(), 'ruby\|rake')
+  let kind = matchstr(test#ruby#minitest#executable(), 'ruby\|rake\|dev')
   return s:build_{kind}_args(get(l:, 'path'), a:args)
 endfunction
 
@@ -62,7 +62,19 @@ function! s:build_ruby_args(path, args) abort
   endif
 endfunction
 
+function! s:build_dev_args(path, args) abort
+  if a:path =~# '*'
+    return ['-e '.shellescape('Dir["./'.a:path.'"].each &method(:require)')] + a:args
+  else
+    return [a:path] + a:args
+  endif
+endfunction
+
 function! test#ruby#minitest#executable() abort
+  if filereadable('dev.yml')
+    return 'dev test'
+  endif
+
   if system('cat Rakefile') =~# 'Rake::TestTask' ||
    \ (exists('b:rails_root') || filereadable('./bin/rails'))
     if !empty(glob('.zeus.sock'))
